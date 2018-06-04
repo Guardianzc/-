@@ -1,0 +1,21 @@
+library(zoo)
+library(xts)
+library(TTR)
+setwd('E://Rdata')
+fc <- read.csv('forecast.csv')
+fcs <- ts(fc)
+plot.ts(fcs)
+fcsdiff1 <- diff(fcs,differences = 1)
+plot.ts(fcsdiff1)
+acf(fcsdiff1,lag.max=20)
+acf(fcsdiff1,lag.max=20,plot=FALSE)
+pacf(fcsdiff1,lag.max=20)
+pacf(fcsdiff1,lag.max=20,plot=FALSE)
+library(forecast)
+
+fc.arima <- arima(fcs, order = c(1,1,1))
+summary(fc.arima)
+fcfc <- forecast(fc.arima, h = 5)
+fcfc
+plot(fcfc)
+

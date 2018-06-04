@@ -1,0 +1,92 @@
+#6.Concordance.R
+setwd("E:\\Rdata")
+library(data.table)
+library(ggplot2)
+library(dplyr) 
+library(tidyr)
+files <- fread("sample.txt",header=FALSE,sep="\t",data.table=FALSE)
+#sample是一个包含了文件名的函数，没有表头
+#The Concordance of Replicate1 and Replicate2 
+
+
+
+for (i in 2:5){						#LEVEL的循环
+
+	Concordanceall <- data.frame()
+	Concordanceall <- t(c("1","2","3"))
+	for (j in 1:nrow(files)){	#文件的循环
+		Con1 <- data.frame()
+		for (k in 1:3){                              #vs左侧重复组的循环
+			
+			for (l in 1:3){							  #vs右侧重复组的循环
+				data1 <- fread(paste0(files[j,1],paste0("_",k,"."),"dup.pass.precise.vcf.INFO.merge1.merge2.merge3.merge4.LEVEL"),sep="\t",header=TRUE,data.table=FALSE)
+				data2 <- fread(paste0(files[j,2],paste0("_",l,"."),"dup.pass.precise.vcf.INFO.merge1.merge2.merge3.merge4.LEVEL"),sep="\t",header=TRUE,data.table=FALSE)
+				dat1_LEVEL <- data1[data1$LEVEL==paste0("L",i),]
+				dat2_LEVEL <- data2[data2$LEVEL==paste0("L",i),]  #提取出相应的LEVEL数据
+				dat1_dat2_match <-data.frame()
+				
+				for(m in unique(intersect(dat1_LEVEL$Chr,dat2_LEVEL$Chr))){
+					dat1<- dat1_LEVEL[dat1_LEVEL$Chr==m,]
+					dat2<- dat2_LEVEL[dat2_LEVEL$Chr==m,]
+					
+					if (nrow(dat2) > 0){
+						dat2$INDEX <- c(1:nrow(dat2))
+						#match1
+						#x and y are the two endpoints of the dat1.
+						match1 <- apply(dat1,1,function(Dat1,Dat2)
+						{    #输入数据，1-列2-行，操作）
+						x <- as.numeric(Dat1[2])#自定义函数，return返回
+						y <- as.numeric(Dat1[3])#拿到第一个data的开始和结束位点
+						Dat2_INDEX<-union(intersect(Dat2$INDEX[Dat2$End>=y],Dat2$INDEX[Dat2$Start<=0.5*(x+y)]),intersect(Dat2$INDEX[Dat2$End>=y],Dat2$INDEX[Dat2$Start<=(2*y-as.numeric(Dat2$End))]))
+						n <- length(Dat2_INDEX)
+						#先取交集，再取并集，最后返回所有符合要求的数量（第二个条件是尾部长，中点在第一个dat里面）
+						return(n)
+						},dat2
+										)
+						#match2
+						match2 <- apply(dat1,1,function(Dat1,Dat2)
+						{#输入数据，1-列2-行，操作）
+						x <- as.numeric(Dat1[2])
+						y <- as.numeric(Dat1[3])
+						Dat2_INDEX<-union(intersect(Dat2$INDEX[Dat2$Start<x],Dat2$INDEX[Dat2$End>=0.5*(x+y)]),intersect(Dat2$INDEX[Dat2$Start<x],Dat2$INDEX[Dat2$End>=(2*x-as.numeric(Dat2$Start))]))
+						n <- length(Dat2_INDEX)
+						#左端的情况
+						return(n)
+						},dat2
+						)
+						
+						#match3
+						match3 <- apply(dat1,1,function(Dat1,Dat2)
+						{
+						x <- as.numeric(Dat1[2])
+						y <- as.numeric(Dat1[3])
+						Dat2_INDEX<-intersect(Dat2$INDEX[Dat2$Start>=x],Dat2$INDEX[Dat2$End<y])
+						#包含的情况
+						n <- length(Dat2_INDEX)
+						return(n)
+						},dat2
+						)	
+
+
+						dat1_dat2_new <- data.frame(match1<-c(match1),match2<-c(match2),match3<-c(match3))
+						colnames(dat1_dat2_new) <- c("match1","match2","match3")
+						dat1_dat2_match <- rbind(dat1_dat2_match,dat1_dat2_new)
+						}
+				}																		#把几个的结果统一输入match里
+				dat1_dat2_match$Sum <- rowSums(dat1_dat2_match[1:3])
+				#len <- nrow(dat1_dat2_match[dat1_dat2_match$Sum>0,])
+				dat1_dat2_concordance <- sum(dat1_dat2_match$Sum)/((nrow(dat1_LEVEL)+nrow(dat2_LEVEL))/2)
+				#match的数量除两者总数的平均数
+				
+				Con1[k,l] <- dat1_dat2_concordance
+			}
+			 
+		}
+	
+	Concordanceall = cbind(Concordanceall,Con1)
+	}
+	write.csv(Concordanceall,file=paste0("L2",i,".csv"))
+}
+
+	
+	
