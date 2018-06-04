@@ -1,0 +1,24 @@
+setwd('E:\\Rdata')
+data <- read.table('LCL5_L1txt.txt')
+head(data)
+library(reshape2)
+library(ggplot2)
+# 转换前，先增加一列ID列，保存行名字
+data$ID <- rownames(data) 
+# melt：把正常矩阵转换为长表格模式的函数。工作原理是把全部的非id列的数值列转为1列，命名为value；所有字符列转为variable列。
+# id.vars 列用于指定哪些列为id列；这些列不会被merge，会保留为完整一列。
+data_m <- melt(data, id.vars=c("ID"))
+head(data_m)
+#检查参数
+
+# aes: aesthetic的缩写，一般指定整体的X轴、Y轴、颜色、形状、大小等
+# 在最开始读入数据时，一般只指定x和y，其它后续指定
+p <- ggplot(data_m, aes(x=variable,y=ID))
+
+# 热图就是一堆方块根据其值赋予不同的颜色，所以这里使用fill=value, 用数值做填充色。
+p <- p + geom_tile(aes(fill=value))
+     p + scale_fill_gradient(limits=c(0,1),low = "white", high = "blue")  #调整范围
+    
+# ggplot2为图层绘制，一层层添加，存储在p中，在输出p的内容时
+pdf("HeatmapLCL5L1.pdf")
+
